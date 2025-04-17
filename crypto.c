@@ -2,57 +2,76 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include<string.h>
+#include <string.h>
 #define SIZE 2
 #define MAX_GRAM_LEN 10
 #define MAX_NGRAMS 100
 
-void caesersCipher(char *Input, bool august){
+
+void caesarCipher(char *Input, bool august){
     int val;
     if (august){
-    	val = 1;
-    }else {
-    	printf("Enter the shift");
-    	scanf("%d",&val);
+        val = 1;
+    } else {
+        printf("Enter the shift: ");
+        scanf("%d",&val);
     }
     
     for (int i = 0; Input[i] != '\0'; i++) {
         char ch = Input[i];
-	char base;
+        char base;
         if (isalpha(ch)) {
-        
             if(isupper(ch)){
-            	base = 'A';
-            }else{
-            	base = 'a';
+                base = 'A';
+            } else {
+                base = 'a';
             }
-    
-            Input[i] = (ch - base +  val) % 26 + base;
+            
+            Input[i] = (ch - base + val) % 26;
+            if (Input[i] < 0) Input[i] += 26;
+            Input[i] += base;
         }
     }
 }
 
 void atbash(char *Input){
-	for (int i = 0; Input[i] != '\0'; i++) {
-		char ch = Input[i];
-		char base;
+    for (int i = 0; Input[i] != '\0'; i++) {
+        char ch = Input[i];
+        char base;
 
-		if (isalpha(ch)) {
-			if (isupper(ch)) {
-				base = 'A';
-			} else {
-				base = 'a';
-			}
-			Input[i] = base + (25 - (ch - base));
-		}
-	}
+        if (isalpha(ch)) {
+            if (isupper(ch)) {
+                base = 'A';
+            } else {
+                base = 'a';
+            }
+            Input[i] = base + (25 - (ch - base));
+        }
+    }
+}
+
+
+int gcd(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
 }
 
 void affine(char *text) {
     int a;
     int b;
-    printf("Enter a: ");
-    scanf("%d",&a);
+    
+    do {
+        printf("Enter a (must be coprime with 26): ");
+        scanf("%d",&a);
+        if (gcd(a, 26) != 1) {
+            printf("Error: 'a' must be coprime with 26. Try again.\n");
+        }
+    } while (gcd(a, 26) != 1);
+    
     printf("Enter b: ");
     scanf("%d",&b);
     
@@ -62,107 +81,115 @@ void affine(char *text) {
         if (isalpha(ch)) {
             char base = isupper(ch) ? 'A' : 'a';
             int x = ch - base;
-            text[i] = ((a * x + b) % 26) + base;
+            int result = (a * x + b) % 26;
+            if (result < 0) result += 26;  
+            text[i] = result + base;
         }
     }
 }
+
 
 void vigenere(char *text, bool beaufort) {
     char key[100];
+    
+   
     printf("Enter the Key: ");
+    getchar();  
     fgets(key, sizeof(key), stdin);
-
-    size_t keyLength = strlen(key);
-    if (key[keyLength - 1] == '\n') {
-        key[keyLength - 1] = '\0'; 
-        keyLength--;
-    }
-
-    int textLength = strlen(text);
+    key[strcspn(key, "\n")] = '\0';  
+    
+    int keyLen = strlen(key);
     int keyIndex = 0;
-
-    for (int i = 0; i < textLength; i++) {
-        char ch = text[i];
-
-        if (isalpha(ch)) {
-            char base = isupper(ch) ? 'A' : 'a';
-            int shift = tolower(key[keyIndex % keyLength]) - 'a';
-
+    
+    for (int i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            char base = isupper(text[i]) ? 'A' : 'a';
+            int textVal = text[i] - base;
+            int keyVal = tolower(key[keyIndex % keyLen]) - 'a';
+            
             if (beaufort) {
-                // Beaufort uses: C = (K - P + 26) % 26
-                text[i] = ((shift - (ch - base) + 26) % 26) + base;
+                
+                text[i] = ((keyVal - textVal + 26) % 26) + base;
             } else {
-                // Vigenere uses: C = (P + K) % 26
-                text[i] = ((ch - base + shift) % 26) + base;
+                
+                text[i] = ((textVal + keyVal) % 26) + base;
             }
-
+            
             keyIndex++;
         }
     }
 }
+
+
 void gronsfeld(char *text) {
     char key[100];
-
-
+    
     printf("Enter the numeric key: ");
+    getchar();  
     fgets(key, sizeof(key), stdin);
-
-    size_t len = strlen(key);
-    if (len > 0 && key[len - 1] == '\n') {
-        key[len - 1] = '\0';
-    }
-
-    int textLength = strlen(text);
-    int keyLength = strlen(key);
+    key[strcspn(key, "\n")] = '\0';  
+    
+    int keyLen = strlen(key);
     int keyIndex = 0;
-
-    for (int i = 0; i < textLength; i++) {
-        char ch = text[i];
-
-        if (isalpha(ch)) {
-            char base = isupper(ch) ? 'A' : 'a';
-            int shift = key[keyIndex % keyLength] - '0';  
-            text[i] = ((ch - base + shift) % 26) + base;
-
+    
+    for (int i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            char base = isupper(text[i]) ? 'A' : 'a';
+            int textVal = text[i] - base;
+            int keyVal = key[keyIndex % keyLen] - '0'; 
+            
+            
+            text[i] = ((textVal + keyVal) % 26) + base;
+            
             keyIndex++;
         }
     }
 }
+
 
 void autokeyEncrypt(char *text) {
     char key[100];
+    char plaintext[1000]; 
+    
+  
     printf("Enter the initial Key (a word): ");
+    getchar();  
     fgets(key, sizeof(key), stdin);
-
-    size_t keyLength = strlen(key);
-    if (key[keyLength - 1] == '\n') {
-        key[keyLength - 1] = '\0'; 
-        keyLength--;
-    }
-
-    int textLength = strlen(text);
-    char runningKey[200];
-
-    // Build running key: initial key + text
-    strcpy(runningKey, key);
-    strncat(runningKey, text, textLength - keyLength);
-
+    key[strcspn(key, "\n")] = '\0';  
+    
+    strcpy(plaintext, text);  
+    
+    int keyLen = strlen(key);
+    int textLen = strlen(text);
     int keyIndex = 0;
-
-    for (int i = 0; i < textLength; i++) {
-        char ch = text[i];
-
-        if (isalpha(ch)) {
-            char base = isupper(ch) ? 'A' : 'a';
-            int shift = tolower(runningKey[keyIndex]) - 'a';
-            text[i] = ((ch - base + shift) % 26) + base;
+    int plaintextIndex = 0;
+    
+    for (int i = 0; i < textLen; i++) {
+        if (isalpha(text[i])) {
+            char base = isupper(text[i]) ? 'A' : 'a';
+            int textVal = text[i] - base;
+            int keyVal;
+            
+            if (keyIndex < keyLen) {
+               
+                keyVal = tolower(key[keyIndex]) - 'a';
+            } else {
+                
+                while (plaintextIndex < textLen && !isalpha(plaintext[plaintextIndex])) {
+                    plaintextIndex++;
+                }
+                keyVal = tolower(plaintext[plaintextIndex]) - 'a';
+                plaintextIndex++;
+            }
+            
+            text[i] = ((textVal + keyVal) % 26) + base;
             keyIndex++;
         }
     }
 }
 
 typedef struct {
-    char gram[MAX_GRAM_LEN];
+    char gram[MAX_GRAM_LEN + 1];  
     int count;
 } NGram;
 
@@ -171,8 +198,10 @@ void toLowerCase(char *str) {
         str[i] = tolower(str[i]);
 }
 
-int compareNGrams(char *a, char *b) {
-    return strncmp(a, b, MAX_GRAM_LEN);
+int compareNGrams(const void *a, const void *b) {
+    NGram *ngramA = (NGram *)a;
+    NGram *ngramB = (NGram *)b;
+    return strcmp(ngramA->gram, ngramB->gram);
 }
 
 void generateNGrams(char *text, int n) {
@@ -180,28 +209,41 @@ void generateNGrams(char *text, int n) {
     int total = 0;
 
     int len = strlen(text);
+    
+    char cleanText[1000];
+    int cleanLen = 0;
+    
+    for (int i = 0; i < len; i++) {
+        if (isalpha(text[i])) {
+            cleanText[cleanLen++] = tolower(text[i]);
+        }
+    }
+    cleanText[cleanLen] = '\0';
 
-    for (int i = 0; i <= len - n; i++) {
-        char temp[MAX_GRAM_LEN] = {0};
-        strncpy(temp, &text[i], n);
-
+    for (int i = 0; i <= cleanLen - n; i++) {
+        char temp[MAX_GRAM_LEN + 1] = {0};
+        strncpy(temp, &cleanText[i], n);
+        temp[n] = '\0';  
         
         int found = 0;
         for (int j = 0; j < total; j++) {
-            if (compareNGrams(temp, ngrams[j].gram) == 0) {
+            if (strcmp(temp, ngrams[j].gram) == 0) {
                 ngrams[j].count++;
                 found = 1;
                 break;
             }
         }
-
         
         if (!found && total < MAX_NGRAMS) {
             strncpy(ngrams[total].gram, temp, n);
+            ngrams[total].gram[n] = '\0'; =
             ngrams[total].count = 1;
             total++;
         }
     }
+
+
+    qsort(ngrams, total, sizeof(NGram), compareNGrams);
 
     printf("\nN-Grams of size %d:\n", n);
     for (int i = 0; i < total; i++) {
@@ -209,13 +251,10 @@ void generateNGrams(char *text, int n) {
     }
 }
 
-
-
 void hillEncrypt(char *plaintext, int key[SIZE][SIZE]) {
     int len = strlen(plaintext);
     char cleanText[100];
     int cleanLen = 0;
-
 
     for (int i = 0; i < len; i++) {
         if (isalpha(plaintext[i])) {
@@ -223,6 +262,7 @@ void hillEncrypt(char *plaintext, int key[SIZE][SIZE]) {
         }
     }
 
+    
     if (cleanLen % 2 != 0) {
         cleanText[cleanLen++] = 'X';
     }
@@ -236,6 +276,10 @@ void hillEncrypt(char *plaintext, int key[SIZE][SIZE]) {
 
         int c1 = (key[0][0] * a + key[0][1] * b) % 26;
         int c2 = (key[1][0] * a + key[1][1] * b) % 26;
+        
+        // Handle negative modulo
+        if (c1 < 0) c1 += 26;
+        if (c2 < 0) c2 += 26;
 
         printf("%c%c", c1 + 'A', c2 + 'A');
     }
@@ -247,41 +291,44 @@ void railFenceEncrypt(char *text, int rails) {
     int len = strlen(text);
     char rail[rails][len];
 
-   
+
     for (int i = 0; i < rails; i++)
         for (int j = 0; j < len; j++)
-            rail[i][j] = '\n';
+            rail[i][j] = '\0';
 
-    int row = 0, dirDown = 0;
-
-
-    for (int i = 0; i < len; i++) {
-        rail[row][i] = text[i];
-
-        
-        if (row == 0 || row == rails - 1)
-            dirDown = !dirDown;
-
-        row += dirDown ? 1 : -1;
-    }
+    int row = 0;
+    bool dirDown = true; 
 
     
+    for (int i = 0; i < len; i++) {
+        rail[row][i] = text[i];
+        
+       
+        if (row == 0)
+            dirDown = true;
+        else if (row == rails - 1)
+            dirDown = false;
+            
+        
+        row = dirDown ? row + 1 : row - 1;
+    }
+
+   
     printf("Encrypted text: ");
     for (int i = 0; i < rails; i++)
         for (int j = 0; j < len; j++)
-            if (rail[i][j] != '\n')
+            if (rail[i][j] != '\0')
                 printf("%c", rail[i][j]);
 
     printf("\n");
 }
-
 
 void routeCipherEncrypt(char *text, int rows, int cols) {
     char matrix[rows][cols];
     int len = strlen(text);
     int index = 0;
 
-    
+    // Fill the matrix row by row
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             if (index < len)
@@ -291,7 +338,7 @@ void routeCipherEncrypt(char *text, int rows, int cols) {
         }
     }
 
-  
+    
     printf("Encrypted text: ");
     for (int j = 0; j < cols; j++) {
         for (int i = 0; i < rows; i++) {
@@ -303,10 +350,12 @@ void routeCipherEncrypt(char *text, int rows, int cols) {
 
 void getKeyOrder(const char *key, int *order) {
     int len = strlen(key);
+    
+    
     for (int i = 0; i < len; i++) {
         order[i] = 1;
         for (int j = 0; j < len; j++) {
-            if (key[j] < key[i])
+            if (key[j] < key[i] || (key[j] == key[i] && j < i))
                 order[i]++;
         }
     }
@@ -317,14 +366,12 @@ void myszkowskiEncrypt(const char *text, const char *key) {
     int textLen = strlen(text);
     int rows = (textLen + keyLen - 1) / keyLen;
 
-  
     char matrix[rows][keyLen];
     int index = 0;
     for (int i = 0; i < rows; i++)
         for (int j = 0; j < keyLen; j++)
             matrix[i][j] = (index < textLen) ? text[index++] : 'X';
 
-    
     int order[keyLen];
     getKeyOrder(key, order);
 
@@ -340,7 +387,6 @@ void myszkowskiEncrypt(const char *text, const char *key) {
     }
     printf("\n");
 }
-
 
 int main() {
     int choice;
@@ -373,8 +419,8 @@ int main() {
         case 1:
             printf("Use default shift of 1? (0 = No, 1 = Yes): ");
             scanf("%d", (int*)&special);
-            getchar(); 
-            caesersCipher(input, special);
+            getchar(); // Consume newline
+            caesarCipher(input, special);
             printf("Encrypted Text: %s\n", input);
             break;
         case 2:
@@ -409,7 +455,7 @@ int main() {
                     scanf("%d", &key[i][j]);
                 }
             }
-            getchar();
+            getchar(); 
             hillEncrypt(input, key);
             break;
         }
@@ -417,7 +463,7 @@ int main() {
             int rails;
             printf("Enter number of rails: ");
             scanf("%d", &rails);
-            getchar(); 
+            getchar();
             railFenceEncrypt(input, rails);
             break;
         }
@@ -438,10 +484,11 @@ int main() {
             break;
         }
         case 12: {
-        	printf("Enter the key: ");
-        	fgets(key,sizeof(key),stdin);
-        	key[strcspn(key,"\n")]=0;
-        	myszkowskiEncrypt(input,key);
+            printf("Enter the key: ");
+            fgets(key, sizeof(key), stdin);
+            key[strcspn(key, "\n")] = 0;
+            myszkowskiEncrypt(input, key);
+            break; 
         }
         default:
             printf("Invalid choice.\n");
@@ -450,5 +497,3 @@ int main() {
 
     return 0;
 }
-
-
